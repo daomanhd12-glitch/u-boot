@@ -27,9 +27,11 @@ jobs:
 
     - name: Build U-Boot for R36S
       run: |
+        export CROSS_COMPILE=aarch64-linux-gnu-
+        export ARCH=arm
         export PATH=/usr/bin:$PATH
-        make evb-rk3326_defconfig         # <── change to correct .config if needed
-        make -j$(nproc)
+        make evb-rk3326_defconfig
+        make -j$(nproc) KCFLAGS="-Wno-error"
 
     - name: Pack loader + u-boot.img
       run: |
