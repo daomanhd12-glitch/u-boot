@@ -28,7 +28,7 @@ jobs:
     - name: Build U-Boot for R36S
       run: |
         export PATH=/usr/bin:$PATH
-        make r36s_defconfig         # <── change to correct .config if needed
+        make evb-rk3326_defconfig         # <── change to correct .config if needed
         make -j$(nproc)
 
     - name: Pack loader + u-boot.img
