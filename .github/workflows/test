@@ -1,0 +1,52 @@
+name: Build U-Boot for R36S / RK3326
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+  workflow_dispatch:   # Cho phép bấm 'Run workflow' để build thủ công
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout source
+      uses: actions/checkout@v4
+
+    - name: Install dependencies
+      run: |
+        sudo apt update
+        sudo apt install -y build-essential gcc-aarch64-linux-gnu \
+            bison flex libssl-dev bc make git python3
+
+    - name: List configs for reference
+      run: ls configs
+
+    - name: Configure U-Boot (R36S / RK3326)
+      # ❗ Thay 'r36s_defconfig' nếu tên khác, ví dụ rk3326_defconfig hoặc r36_defconfig
+      run: |
+        make ARCH=arm CROSS_COMPILE=aarch64-linux-gnu- r36s_defconfig
+
+    - name: Build U-Boot
+      run: |
+        make ARCH=arm CROSS_COMPILE=aarch64-linux-gnu- -j$(nproc)
+
+    - name: Pack Rockchip Bootloader (if mkimg.sh exists)
+      run: |
+        if [ -f tools/mkimg.sh ] || [ -f mkimg.sh ]; then
+          chmod +x tools/mkimg.sh 2>/dev/null || true
+          chmod +x mkimg.sh 2>/dev/null || true
+          ./mkimg.sh || tools/mkimg.sh || echo "No mkimg.sh found"
+        else
+          echo "⚠ mkimg.sh không tồn tại — chỉ build U-Boot raw"
+        fi
+
+    - name: Create output folder
+      run: mkdir -p output && cp -r u-boot* spl* *.bin *.img *.itb output 2>/dev/null || true
+
+    - name: Upload build Artifacts
+      uses: actions/upload-artifact@v4
+      with:
+        name: uboot-r36s-build
+        path: output/
