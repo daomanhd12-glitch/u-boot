@@ -1,0 +1,48 @@
+name: Build U-Boot (R36S)
+
+on:
+  push:
+    branches: [ "*" ]
+  pull_request:
+  workflow_dispatch:
+
+jobs:
+  build-uboot:
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout repo
+      uses: actions/checkout@v4
+
+    - name: Install dependencies
+      run: |
+        sudo apt update
+        sudo apt install -y gcc-aarch64-linux-gnu gcc-arm-linux-gnueabihf \
+                            bison flex swig python3 python3-pip make \
+                            libssl-dev device-tree-compiler git wget bc
+
+    - name: Get Rockchip rkbin (required for signing)
+      run: |
+        git clone --depth 1 https://github.com/rockchip-linux/rkbin rkbin
+
+    - name: Build U-Boot for R36S
+      run: |
+        export PATH=/usr/bin:$PATH
+        make r36s_defconfig         # <── change to correct .config if needed
+        make -j$(nproc)
+
+    - name: Pack loader + u-boot.img
+      run: |
+        ./make.sh loader
+        ./make.sh uboot
+
+    - name: Upload build artifacts
+      uses: actions/upload-artifact@v4
+      with:
+        name: uboot-r36s-output
+        path: |
+          u-boot.bin
+          u-boot.img
+          u-boot.itb
+          trust.img
+          loader.bin
