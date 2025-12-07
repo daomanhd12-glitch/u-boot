@@ -26,7 +26,7 @@ jobs:
             bison flex libssl-dev bc make device-tree-compiler
 
       - name: Configure U-Boot (edit if config different)
-        run: make evb-rk3326_defconfig CROSS_COMPILE=$CROSS_COMPILE
+        run: make rk3326_defconfig CROSS_COMPILE=$CROSS_COMPILE
 
       - name: Build U-Boot
         run: make -j$(nproc) CROSS_COMPILE=$CROSS_COMPILE
