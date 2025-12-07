@@ -1,50 +1,56 @@
-name: Build U-Boot (R36S)
+name: Build U-Boot (RK3326 / R36S)
 
 on:
   push:
-    branches: [ "*" ]
+    branches: [ main ]
   pull_request:
   workflow_dispatch:
 
 jobs:
-  build-uboot:
+  build_uboot:
     runs-on: ubuntu-latest
+    env:
+      CROSS_COMPILE: aarch64-linux-gnu-
+      ARCH: arm
 
     steps:
-    - name: Checkout repo
-      uses: actions/checkout@v4
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
 
-    - name: Install dependencies
-      run: |
-        sudo apt update
-        sudo apt install -y gcc-aarch64-linux-gnu gcc-arm-linux-gnueabihf \
-                            bison flex swig python3 python3-pip make \
-                            libssl-dev device-tree-compiler git wget bc
+      - name: Install dependencies
+        run: |
+          sudo apt update
+          sudo apt install -y build-essential gcc-aarch64-linux-gnu \
+            bison flex libssl-dev bc make dtc
 
-    - name: Get Rockchip rkbin (required for signing)
-      run: |
-        git clone --depth 1 https://github.com/rockchip-linux/rkbin rkbin
+      - name: Show available configs
+        run: ls configs | sed 's/$/  ↴/'
 
-    - name: Build U-Boot for R36S
-      run: |
-        export CROSS_COMPILE=aarch64-linux-gnu-
-        export ARCH=arm
-        export PATH=/usr/bin:$PATH
-        make evb-rk3326_defconfig
-        make -j$(nproc) KCFLAGS="-Wno-error"
+      - name: Setup default config for RK3326 / R36S
+        # Nếu tên config khác hãy sửa 'r36s_defconfig' tương ứng
+        run: make $ARCH $CROSS_COMPILE r36s_defconfig
 
-    - name: Pack loader + u-boot.img
-      run: |
-        ./make.sh loader
-        ./make.sh uboot
+      - name: Build U-Boot
+        run: make $ARCH $CROSS_COMPILE -j$(nproc)
 
-    - name: Upload build artifacts
-      uses: actions/upload-artifact@v4
-      with:
-        name: uboot-r36s-output
-        path: |
-          u-boot.bin
-          u-boot.img
-          u-boot.itb
-          trust.img
-          loader.bin
+      - name: (Optional) Pack bootloader for Rockchip
+        run: |
+          if [ -f mkimage ] && [ -f tools/rkimg_tool ]; then
+            # Ví dụ giả định: sử dụng script hoặc tool để pack nếu cần
+            echo "Packing bootloader — adjust script as needed"
+          else
+            echo "No specific pack step defined, output raw binaries"
+          fi
+
+      - name: Collect build artifacts
+        run: |
+          mkdir -p artifacts
+          cp -v u-boot.bin u-boot.img u-boot.itb spl/u-boot-spl.bin artifacts/ 2>/dev/null || true
+
+      - name: Upload artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: uboot-rk3326-build
+          path: artifacts/
