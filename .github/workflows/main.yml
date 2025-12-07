@@ -23,34 +23,21 @@ jobs:
         run: |
           sudo apt update
           sudo apt install -y build-essential gcc-aarch64-linux-gnu \
-            bison flex libssl-dev bc make dtc
+            bison flex libssl-dev bc make device-tree-compiler
 
-      - name: Show available configs
-        run: ls configs | sed 's/$/  ↴/'
-
-      - name: Setup default config for RK3326 / R36S
-        # Nếu tên config khác hãy sửa 'r36s_defconfig' tương ứng
-        run: make $ARCH $CROSS_COMPILE r36s_defconfig
+      - name: Configure U-Boot (edit if config different)
+        run: make r36s_defconfig CROSS_COMPILE=$CROSS_COMPILE
 
       - name: Build U-Boot
-        run: make $ARCH $CROSS_COMPILE -j$(nproc)
+        run: make -j$(nproc) CROSS_COMPILE=$CROSS_COMPILE
 
-      - name: (Optional) Pack bootloader for Rockchip
+      - name: Save artifacts
         run: |
-          if [ -f mkimage ] && [ -f tools/rkimg_tool ]; then
-            # Ví dụ giả định: sử dụng script hoặc tool để pack nếu cần
-            echo "Packing bootloader — adjust script as needed"
-          else
-            echo "No specific pack step defined, output raw binaries"
-          fi
+          mkdir out
+          cp u-boot* spl/* 2>/dev/null out/ || true
 
-      - name: Collect build artifacts
-        run: |
-          mkdir -p artifacts
-          cp -v u-boot.bin u-boot.img u-boot.itb spl/u-boot-spl.bin artifacts/ 2>/dev/null || true
-
-      - name: Upload artifacts
+      - name: Upload build output
         uses: actions/upload-artifact@v4
         with:
-          name: uboot-rk3326-build
-          path: artifacts/
+          name: uboot-output
+          path: out/
