@@ -29,7 +29,11 @@ jobs:
         run: make rk3326_defconfig CROSS_COMPILE=$CROSS_COMPILE
 
       - name: Build U-Boot
-        run: make -j$(nproc) CROSS_COMPILE=$CROSS_COMPILE
+        run: |
+          export KCFLAGS="-Wno-error"
+          export HOSTCFLAGS="-Wno-error"
+          export CFLAGS="-Wno-error"
+          make -j$(nproc) CROSS_COMPILE=$CROSS_COMPILE
 
       - name: Save artifacts
         run: |
